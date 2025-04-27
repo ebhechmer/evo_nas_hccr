@@ -1,33 +1,60 @@
 #!/usr/bin/env python3
-import json
+import os, json
+import matplotlib
+# 1) Use Agg backend so we can save plots without a display
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-# Load histories
+# 2) Load histories
 with open("checkpoints/baseline_history.json") as f:
-    b = json.load(f)
+    baseline = json.load(f)
 with open("checkpoints/evo_history.json") as f:
-    e = json.load(f)
+    evo = json.load(f)
 
-epochs = range(1, len(b["train_acc"])+1)
+# 3) Prepare output dir
+os.makedirs("figures", exist_ok=True)
 
-# 1) Accuracy plot
-plt.figure()
-plt.plot(epochs, b["train_acc"], label="Baseline Train")
-plt.plot(epochs, b["val_acc"],   label="Baseline Val")
-plt.plot(epochs, e["train_acc"], label="EvoCNN Train")
-plt.plot(epochs, e["val_acc"],   label="EvoCNN Val")
-plt.xlabel("Epoch")
-plt.ylabel("Accuracy")
-plt.title("Train vs Val Accuracy")
-plt.legend()
-plt.show()
+epochs = list(range(1, len(baseline["val_acc"]) + 1))
 
-# 2) Loss plot
-plt.figure()
-plt.plot(epochs, b["train_loss"], label="Baseline Loss")
-plt.plot(epochs, e["train_loss"], label="EvoCNN Loss")
-plt.xlabel("Epoch")
-plt.ylabel("Loss")
-plt.title("Training Loss")
-plt.legend()
-plt.show()
+# 4a) Validation Accuracy
+plt.figure(figsize=(6,4))
+plt.plot(epochs, baseline["val_acc"], marker='o', label="Baseline Val Acc")
+plt.plot(epochs,    evo["val_acc"], marker='s', label="Evo Val Acc")
+plt.xlabel("Epoch"); plt.ylabel("Val Accuracy")
+plt.title("Validation Accuracy per Epoch")
+plt.legend(); plt.tight_layout()
+plt.savefig("figures/val_accuracy.png")
+plt.close()
+
+# 4b) Training Accuracy
+plt.figure(figsize=(6,4))
+plt.plot(epochs, baseline["train_acc"], marker='o', label="Baseline Train Acc")
+plt.plot(epochs,    evo["train_acc"], marker='s', label="Evo Train Acc")
+plt.xlabel("Epoch"); plt.ylabel("Train Accuracy")
+plt.title("Training Accuracy per Epoch")
+plt.legend(); plt.tight_layout()
+plt.savefig("figures/train_accuracy.png")
+plt.close()
+
+# 4c) Training Loss
+plt.figure(figsize=(6,4))
+plt.plot(epochs, baseline["train_loss"], marker='o', label="Baseline Train Loss")
+plt.plot(epochs,    evo["train_loss"], marker='s', label="Evo Train Loss")
+plt.xlabel("Epoch"); plt.ylabel("Train Loss")
+plt.title("Training Loss per Epoch")
+plt.legend(); plt.tight_layout()
+plt.savefig("figures/train_loss.png")
+plt.close()
+
+# 4d) Parameter Count Comparison
+params = [baseline["params"], evo["params"]]
+labels = ["BaselineCNN", "EvoCNN"]
+plt.figure(figsize=(5,4))
+plt.bar(labels, params)
+plt.ylabel("Parameter Count")
+plt.title("Model Size Comparison")
+plt.tight_layout()
+plt.savefig("figures/param_counts.png")
+plt.close()
+
+print("✅ Saved plots to figures/*.png")
