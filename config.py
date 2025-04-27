@@ -1,28 +1,28 @@
 import os
 import torch
 
+# Device
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
 # Data paths
 TRAIN_DIR = os.path.join("data", "CASIA", "images", "train")
 TEST_DIR  = os.path.join("data", "CASIA", "images", "test")
 
-# Training settings
-BATCH_SIZE = 64
-NUM_WORKERS = 4
-if torch.backends.mps.is_available():
-    DEVICE = "mps"
-elif torch.cuda.is_available():
-    DEVICE = "cuda"
-else:
-    DEVICE = "cpu"
-# Baseline model hyperparams
-BASE_LR = 1e-3
-EPOCHS = 5
+# DataLoader settings
+BATCH_SIZE         = 512         # as large as fits in GPU memory
+NUM_WORKERS        = 8
+PIN_MEMORY         = True
+PERSISTENT_WORKERS = True
+PREFETCH_FACTOR    = 2
 
-PROXY_EPOCHS  = 2    # quick training per candidate
-POP_SIZE       = 10  # small for initial test
-NUM_GEN        = 5
+# Baseline training
+BASE_LR = 1e-3
+EPOCHS  = 5
+
+# EvoNAS proxy settings
+SMOKE_SUBSET   = 5000   # use 5k samples per candidate
+SMOKE_EPOCHS   = 2      # train each proxy 2 epochs
+POP_SIZE       = 20
+NUM_GEN        = 10
 MUTATION_RATE  = 0.2
 CROSSOVER_RATE = 0.5
-# EvoNAS proxy settings for smoke test
-SMOKE_SUBSET = 500          # number of samples per individual
-SMOKE_EPOCHS = 1            # epochs per individual

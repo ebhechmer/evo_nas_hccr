@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from deap import base, creator, tools
 from torch.utils.data import Subset, DataLoader
+from torch.cuda.amp import autocast, GradScaler
 from src.data.loader import get_hwdb_loaders
 from config import (
     PROXY_EPOCHS, BATCH_SIZE, NUM_WORKERS, DEVICE,
@@ -52,8 +53,8 @@ def fitness(genome):
     train_ds = Subset(train_ld.dataset, list(range(min(sub_N, len(train_ld.dataset)))))
     test_ds  = Subset(test_ld.dataset,  list(range(min(sub_N, len(test_ld.dataset)))))
 
-    train_ld = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True,  num_workers=NUM_WORKERS)
-    test_ld  = DataLoader(test_ds,  batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
+    train_ld = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True,  num_workers=NUM_WORKERS, pin_memory=True)
+    test_ld  = DataLoader(test_ds,  batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, pin_memory=True)
 
     # instantiate model
     num_classes = len(train_ld.dataset.dataset.classes) \
@@ -62,14 +63,17 @@ def fitness(genome):
     opt   = optim.Adam(model.parameters(), lr=1e-3)
 
     # proxy (smoke) training
+    scaler = GradScaler()
     for _ in range(SMOKE_EPOCHS):
         model.train()
         for imgs, labels in train_ld:
             imgs, labels = imgs.to(DEVICE), labels.to(DEVICE)
             opt.zero_grad()
-            loss = F.cross_entropy(model(imgs), labels)
-            loss.backward()
-            opt.step()
+            with autocast():
+                loss = F.cross_entropy(preds, labels)
+            scaler.scale(loss).backward()
+            scaler.step(opt)
+            scaler.update()
 
     # validation accuracy
     model.eval()
@@ -83,6 +87,8 @@ def fitness(genome):
     return (correct / total,)
 
 # 4) GA setup
+import torch.backends.cudnn as cudnn
+cudnn.benchmark = True
 def run_evonas():
     random.seed(42)
     creator.create("FitnessMax", base.Fitness, weights=(1.0,))
