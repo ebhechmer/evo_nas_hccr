@@ -6,8 +6,8 @@ import torch.optim as optim
 from torch.cuda.amp import autocast, GradScaler
 
 from config import DEVICE, BATCH_SIZE, NUM_WORKERS, BASE_LR, EPOCHS
-from data.loader import get_hwdb_loaders
-from evo.evo_nas import EvoCNN
+from src.data.loader import get_hwdb_loaders
+from src.evo.evo_nas import EvoCNN
 
 def train_one_epoch(model, loader, optimizer, scaler):
     model.train()
