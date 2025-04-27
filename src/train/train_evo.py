@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import json, os
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn.functional as F
@@ -51,14 +52,27 @@ def main():
     model    = EvoCNN(best_genome, num_classes).to(DEVICE)
     optimizer= optim.Adam(model.parameters(), lr=BASE_LR)
     scaler   = GradScaler()
-
+    train_losses, train_accs, val_accs = [], [], []
     # 3. Train for EPOCHS
     for epoch in range(1, EPOCHS+1):
         train_loss, train_acc = train_one_epoch(model, train_ld, optimizer, scaler)
         val_acc              = evaluate(model, test_ld)
+        train_losses.append(train_loss); train_accs.append(train_acc); val_accs.append(val_acc)
         print(f"[Evo][Epoch {epoch}/{EPOCHS}] "
               f"Train loss={train_loss:.4f}, acc={train_acc:.4f} — "
               f"Val acc={val_acc:.4f}")
+        
+    os.makedirs("checkpoints", exist_ok=True)
+    torch.save(model.state_dict(), "checkpoints/evo_cnn.pth")
+    print("→ Saved EvoCNN to checkpoints/evo_cnn.pth")
+
+    with open("checkpoints/evo_history.json", "w") as f:
+        json.dump({
+            "train_loss": train_losses,
+            "train_acc":  train_accs,
+            "val_acc":    val_accs
+        }, f)
+    print("→ Saved history to checkpoints/evo_history.json")
 
     # 4. Final test accuracy
     test_acc = evaluate(model, test_ld)

@@ -1,3 +1,4 @@
+import json, os
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn.functional as F
@@ -77,11 +78,27 @@ def main():
     model       = BaselineCNN(num_classes).to(DEVICE)
     optimizer   = optim.Adam(model.parameters(), lr=BASE_LR)
     scaler      = GradScaler()
-
+    print("Baseline Params:", sum(p.numel() for p in model.parameters()))
+    train_losses, train_accs, val_accs = [], [], []
     for epoch in range(1, EPOCHS+1):
         print(f"\n### Epoch {epoch}/{EPOCHS}")
-        train_one_epoch(model, train_ld, optimizer, scaler, epoch, args.log_interval)
-        evaluate(model, test_ld)
+        tl, ta = train_one_epoch(model, train_ld, optimizer, scaler, epoch, args.log_interval)
+        va     = evaluate(model, test_ld)
+        train_losses.append(tl); train_accs.append(ta); val_accs.append(va)
 
+    # 1) save model
+    os.makedirs("checkpoints", exist_ok=True)
+    torch.save(model.state_dict(), "checkpoints/baseline_cnn.pth")
+    print("→ Saved BaselineCNN to checkpoints/baseline_cnn.pth")
+
+    # 2) save history
+    with open("checkpoints/baseline_history.json", "w") as f:
+        json.dump({
+            "train_loss": train_losses,
+            "train_acc":  train_accs,
+            "val_acc":    val_accs
+        }, f)
+    print("→ Saved history to checkpoints/baseline_history.json")
+    
 if __name__ == "__main__":
     main()
