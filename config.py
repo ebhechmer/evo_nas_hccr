@@ -26,3 +26,6 @@ POP_SIZE       = 20
 NUM_GEN        = 10
 MUTATION_RATE  = 0.2
 CROSSOVER_RATE = 0.5
+
+# For EvoNAS fallback if SMOKE_EPOCHS isn’t set
+PROXY_EPOCHS = SMOKE_EPOCHS
